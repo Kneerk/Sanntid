@@ -14,7 +14,7 @@
 #define OURADDRESS "129.241.187.155"
 #define SADDRESS "129.241.187.155"
 
-int bsocket, lsocket;
+extern int bsocket, lsocket;
 
 struct code_message{
 	char * rip;

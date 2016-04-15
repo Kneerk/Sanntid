@@ -1,5 +1,6 @@
 #include "sendrec.h"
 
+int bsocket, lsocket;
 
 void die(char * s)
 {
