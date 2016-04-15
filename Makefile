@@ -1,36 +1,48 @@
-# Which compiler to use
-CC = gcc
+program_EXECUTABLE := elevator
 
-# Compiler flags go here.
-CFLAGS = -std=c11 -g -Wall -Wextra -Wcpp
+CXX = clang++-3.6
 
-# Linker flags go here.
-LDFLAGS = -lcomedi -lm -lpthread
+mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
+current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
+current_path := $(abspath ../$(current_dir))
 
-# list of sources
-ELEVSRC = p_process.c primary.c
+program_CXX_SRCS := $(wildcard *.cpp)
+program_CXX_OBJS := ${program_CXX_SRCS:.cpp=.o}
 
-# program executable file name.
-TARGET = process
+program_C_SRCS := $(wildcard *.c)
+program_C_OBJS += ${program_C_SRCS:.c=.o}
 
-# top-level rule, to compile everything.
-all: $(TARGET)
+program_OBJS := $(program_C_OBJS)
+program_OBJS += $(program_CXX_OBJS)
 
-# Define all object files.
-ELEVOBJ = $(ELEVSRC:.c=.o)
 
-# rule to link the program
-$(TARGET): $(ELEVOBJ)
-	$(CC) $^ -o $@ $(LDFLAGS)
+program_LIBRARY_DIRS := $(current_dir) $(current_dir)/headers/  
+program_LIBRARIES := comedi m pthread
 
-# Compile: create object files from C source files.
-%.o : %.c
-	$(CC) $(CFLAGS) -c $< -o $@ 
+CXXFLAGS += -Wall -g -std=c++11
+CFLAGS += -Wall -g -std=c99
 
-# rule for cleaning re-compilable files.
+CPPFLAGS += $(foreach includedir,$(program_INCLUDE_DIRS),-I$(includedir))
+LDFLAGS += $(foreach librarydir,$(program_LIBRARY_DIRS),-L$(librarydir))
+LDFLAGS += $(foreach library,$(program_LIBRARIES),-l$(library))
+
+.PHONY: all clean distclean
+all: $(program_EXECUTABLE)
+
+$(program_CXX_OBJS):%.o:%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(CPPFLAGS) $(LDFLAGS)
+
+$(program_C_OBJS):%.o:%.c
+	$(CXX) $(CXXFLAGS) -c $< -o $@ $(CPPFLAGS) $(LDFLAGS)
+
+$(program_EXECUTABLE):$(program_OBJS)
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -o $(program_EXECUTABLE) $(program_OBJS) $(LDFLAGS)
+
 clean:
-	rm -f $(TARGET) $(ELEVOBJ)
+	@- $(RM) $(program_EXECUTABLE)
+	@- $(RM) $(program_C_OBJS)
+	@- $(RM) $(program_CXX_OBJS)
 
-rebuild:	clean all
+distclean: clean
 
-.PHONY: all rebuild clean
+.PHONY: all clean
