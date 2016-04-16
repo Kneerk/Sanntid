@@ -30,7 +30,7 @@ void udp_init(int localPort){
         die("bbind");
     }
     // local
-    if ((lsocket = socket(AF_INET, SOCK_DGRAM, 0)) == -1)
+    if ((lsocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1)
     {
         die("lsocket");
     }
@@ -59,7 +59,7 @@ int udp_Broadcaster(std::string message){
     {
         die("bcast");
     }
-        printf("Sendt packet to %s:%d\n", inet_ntoa(baddr.sin_addr), ntohs(baddr.sin_port));
+        //printf("Sendt packet to %s:%d\n", inet_ntoa(baddr.sin_addr), ntohs(baddr.sin_port));
         printf("Data from sender: %s\n" , sbuff);
 
     return 0;
@@ -89,7 +89,7 @@ int udp_Sender(std::string message, int localPort, char * ip)
         die("sendto()");
         
     }
-        printf("Sendt packet to %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        //printf("Sendt packet to %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
         printf("Data from sender: %s\n" , sbuff);    
  
     return 0;
@@ -115,7 +115,7 @@ struct code_message udp_Reciever()
     inet_pton(AF_INET, OURADDRESS, &si_me.sin_addr);*/
      
     //keep listening for data
-    printf("Waiting for data...\n");
+    //printf("Waiting for data...\n");
       
     memset(&rbuff[0], 0, sizeof(rbuff)); 
     //try to receive some data, this is a blocking call
@@ -130,7 +130,7 @@ struct code_message udp_Reciever()
 
     //print details of the client/peer and the data received
     //printf("Received packet from %s:%d\n", inet_ntoa(si_other.sin_addr), ntohs(si_other.sin_port));
-    printf("Data received: %s %i\n" , rbuff, recv_len);
+    printf("Data received: %s \n" , rbuff);
     //printf("Code data: %s\n", code.data);
  
     return code;
@@ -154,9 +154,9 @@ struct code_message udp_recieve_broadcast(){
     code.rip= inet_ntoa(addr.sin_addr);
     code.port = addr.sin_port;
 
-    printf("Received packet from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
-    printf("Data received: %s %i\n" , rbuff, recv_len);
-    printf("Code data: %s\n", code.data);
+    //printf("Received packet from %s:%d\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    printf("Data received: %s\n" , rbuff);
+    //printf("Code data: %s\n", code.data);
     return code; 
 }
 

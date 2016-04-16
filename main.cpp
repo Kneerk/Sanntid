@@ -10,16 +10,14 @@
 
 OrderManager orderManager(1);
 struct code_message packet;
-State current_state;
+//State current_state;
 void listenForOrders(){
 	while(true){
 		switch(current_state){
 			case MASTER:
 				orderManager.listen();
-				orderManager.code();
 				break;
 			case SLAVE:
-				orderManager.decode();
 				orderManager.listen();
 				break;
 			}
@@ -28,7 +26,11 @@ void listenForOrders(){
 
 void drive(){
 	while(true){
-		orderManager.manage();
+		switch(current_state){
+			case SLAVE:
+				orderManager.manage();
+			break;
+		}
 	}
 }
 
@@ -36,13 +38,15 @@ void Sender(){
 	while(true){
 		switch(current_state){
 			case MASTER:
-			udp_Broadcaster(orderManager.msg);
-			usleep(500000);
-			break;
+				usleep(250000);
+				orderManager.code();
+				udp_Broadcaster(orderManager.smsg);
+				break;
 			case SLAVE:
-			udp_Sender("Hallo", 20023, packet.rip);
-			sleep(1);
-			break;
+				orderManager.code();
+				udp_Sender(orderManager.smsg, 20019, packet.rip);
+				usleep(250000);
+				break;
 		}
 	}
 }
@@ -51,19 +55,23 @@ void Reciever(){
 	while(true){
 		switch(current_state){
 			case MASTER:
-			packet = udp_Reciever();
-			printf("Message: %s", packet.data);
-			break;
+				packet = udp_Reciever();
+				//printf("Message: %s\n", packet.data);
+				orderManager.decode(packet.data);
+				printf("CF: %i, SI: %i, DI %i\n", orderManager.elevators[0].currentFloor, orderManager.elevators[0].stateIndex, orderManager.elevators[0].directionIndex);
+				break;
 			case SLAVE:
-			packet = udp_recieve_broadcast();
-			break;
+				packet = udp_recieve_broadcast();
+				//printf("Message: %s\n", packet.data);
+				orderManager.decode(packet.data);
+				break;
 		}
 	}
 }
 
 int main() {
 	elev_init();
-	udp_init(20018);
+	udp_init(20019);
 	printf("PROGRAM STARTED\n");
 	/*int nBytes = 0;
 	Timer timer;
@@ -76,8 +84,8 @@ int main() {
 			packet = udp_recieve_broadcast();
 		}
 	}
-	printf("complete");
-	*/
+	printf("complete");*/
+	
 	int input;
 
 	printf("I AM\n");
@@ -92,7 +100,7 @@ int main() {
 	current_state = SLAVE;
 	break;
 	}
-
+	if(current_state == SLAVE){packet = udp_recieve_broadcast();}
 
     std::thread t1(listenForOrders);
     std::thread t2(drive);
