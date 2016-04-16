@@ -8,18 +8,20 @@
 
 enum State{MASTER, SLAVE};
 
+extern State current_state;
+
 class OrderManager{
 private:
-	std::deque<Elevator> elevators;
 	int nElevators;
 
 public:
+	std::deque<Elevator> elevators;
 	unsigned int buttonMatrix[4][3];
 	unsigned int buffer[4][3];
 	int nextOrder;
-	std::string msg;
+	std::string smsg;
 	void code();
-	void decode();
+	void decode(std::string);
 	OrderManager(int);
 	void listen();
 	void manage();

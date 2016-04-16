@@ -10,9 +10,10 @@
 #include<string>
 
 #define BUFLEN 512  //Max length of buffer
-#define BROADCASTPORT 20020   //The port on which to listen for incoming data
-#define OURADDRESS "129.241.187.155"
-#define SADDRESS "129.241.187.155"
+#define BROADCASTPORT 8000   //The Broadcastport
+#define MASTERPORT 20019 //The localport
+//#define OURADDRESS "129.241.187.157"
+//#define SADDRESS "129.241.187.155"
 
 extern int bsocket, lsocket;
 

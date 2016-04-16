@@ -20,6 +20,7 @@
 
 using namespace std;
 
+State current_state;
 OrderManager::OrderManager(int nElevators){
 	this->nElevators = nElevators;
 	addElevators(nElevators);
@@ -42,57 +43,101 @@ void OrderManager::addElevators(int nElevators){
 
 void OrderManager::listen(){
     //printf("%s\n", toString(elevators[0].getCurrentState()));
-
 	for(int i = 0; i < N_FLOORS; i++){
 		for(int j = 0; j < N_BUTTONS; j++){
-			//Listen for orders
-			if(elev_get_button_signal((elev_button_type_t)j, i)){
-				buttonMatrix[i][j] = 1;
-			}
-			//Set lights
-			elev_set_button_lamp((elev_button_type_t)j, i, buttonMatrix[i][j]);
-
-			//Add and clear
-			if(buttonMatrix[i][j]){
-				elevators[0].addOrder(i, (elev_button_type_t)j);
-				//printf("%s\n", toString(elevators[0].getCurrentState()));
-				if(elevators[0].getCurrentState() == OPEN){
-					int index = elevators[0].getDirectionIndex();
-					int currentFloor = elev_get_floor_sensor_signal();
-					buttonMatrix[currentFloor][index] = 0;
-					buttonMatrix[currentFloor][2] = 0;
+			switch(current_state){
+				case MASTER:
+				//Listen for orders
+				if(elev_get_button_signal((elev_button_type_t)j, i)){
+					buttonMatrix[i][j] = 1;
 				}
+				//Set lights
+				elev_set_button_lamp((elev_button_type_t)j, i, buttonMatrix[i][j]);
+
+				if (elevators[0].currentState == OPEN){
+						buttonMatrix[elevators[0].currentFloor][elevators[0].directionIndex] = 0;
+						buttonMatrix[elevators[0].currentFloor][2] = 0;
+					}
+					if(elevators[0].orders.empty()){ //Fiks
+						buttonMatrix[elevators[0].currentFloor][0] = 0;
+						buttonMatrix[elevators[0].currentFloor][1] = 0;
+					}			
+				break;
+				//Add and clear
+				case SLAVE:
+				if(elev_get_button_signal((elev_button_type_t)3, i)){
+					buttonMatrix[i][3] = 1;
+				}
+				elev_set_button_lamp((elev_button_type_t)j, i, buttonMatrix[i][j]));
+
+
+				if(buttonMatrix[i][j]){
+					elevators[0].addOrder(i, (elev_button_type_t)j);
+					/*int currentFloor = elev_get_floor_sensor_signal();
+					if(elevators[0].getCurrentState() == OPEN){
+						int index = elevators[0].getDirectionIndex();
+						buttonMatrix[currentFloor][index] = 0;
+						buttonMatrix[currentFloor][2] = 0;
+					}
+					if(elevators[0].orders.empty()){ //Fiks
+						buttonMatrix[currentFloor][0] = 0;
+						buttonMatrix[currentFloor][1] = 0;*/
+				}
+
+				break;		
 			}
 		}
 	}
-} 
+}
+ 
 
 void OrderManager::manage(){
 	elevators[0].run(); //Temporerally
 }
 
 void OrderManager::code(){
-    int n = 0;
-    msg = "S";
-    for(int i = 0; i < N_FLOORS; i++){
-        for(int j = 0; j < N_BUTTONS; j++){
-            msg += to_string(buttonMatrix[i][j]);
-            n++;
-        }
+	switch(current_state){
+		case MASTER:
+    		smsg = "S";
+    		for(int i = 0; i < N_FLOORS; i++){
+        		for(int j = 0; j < N_BUTTONS-1; j++){
+            		smsg += to_string(buttonMatrix[i][j]);
+        		}
+    		}
+    	//printf("CODE: %s\n", msg.c_str());
+    	break;
+    	case SLAVE:
+    		smsg = "R";
+    		smsg += to_string(elevators[0].getStateIndex());
+    		smsg += to_string(elevators[0].getDirectionIndex());
+    		smsg += to_string(elevators[0].currentFloor);
+    	break;
+
     }
-    //printf("CODE: %s\n", msg.c_str());
 }
 
-void OrderManager::decode(){
-    int n = 1;
-    for(int i = 0; i < N_FLOORS; i++){
-        for(int j = 0; j< N_BUTTONS; j++){
-            buttonMatrix[i][j] = msg[n] - 48;
-            n++;
-        }
+void OrderManager::decode(std::string rmsg){
+	switch(current_state){
+		case MASTER:
+			elevators[0].stateIndex = rmsg[1] - 48;
+			elevators[0].directionIndex = rmsg[2]- 48;
+			elevators[0].currentFloor = rmsg[3]- 48;
+			rmsg = "";
+			elevators[0].currentState = elevators[0].getState(elevators[0].stateIndex);
+		break;
+
+		case SLAVE:
+    		int n = 1;
+    		for(int i = 0; i < N_FLOORS; i++){
+        		for(int j = 0; j< N_BUTTONS-1; j++){
+            		buttonMatrix[i][j] = rmsg[n] - 48;
+            		n++;
+        		}
+    		}
+    		rmsg = "";
+			//printf("DECODED: %i%i%i%i%i%i%i%i%i%i%i%i\n",buttonMatrix[0][0],buttonMatrix[0][1],buttonMatrix[0][2],buttonMatrix[1][0],buttonMatrix[1][1],buttonMatrix[1][2],buttonMatrix[2][0],buttonMatrix[2][1],buttonMatrix[2][2],buttonMatrix[3][0],buttonMatrix[3][1],buttonMatrix[3][2]);
+    	break;
     }
-    msg = "";
-//    printf("DECODED: %i%i%i%i%i%i%i%i%i%i%i%i\n",buffer[0][0],buffer[0][1],buffer[0][2],buffer[1][0],buffer[1][1],buffer[1][2],buffer[2][0],buffer[2][1],buffer[2][2],buffer[3][0],buffer[3][1],buffer[3][2] );
 }
 
 inline const char* OrderManager::toString(state s){
